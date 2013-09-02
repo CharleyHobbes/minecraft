@@ -1,5 +1,10 @@
 package charley.tileEntities;
 
+import ic2.api.Direction;
+import ic2.api.energy.event.EnergyTileLoadEvent;
+import ic2.api.energy.event.EnergyTileUnloadEvent;
+import ic2.api.energy.tile.IEnergySink;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
@@ -14,6 +19,7 @@ import net.minecraft.network.packet.Packet132TileEntityData;
 import net.minecraft.network.packet.Packet250CustomPayload;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.ForgeDirection;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.liquids.ILiquidTank;
 import net.minecraftforge.liquids.ITankContainer;
 import net.minecraftforge.liquids.LiquidStack;
@@ -26,13 +32,21 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.network.PacketDispatcher;
 import cpw.mods.fml.relauncher.Side;
 
-public class TileEntityCellCleaner extends TileEntity implements IInventory, ITankContainer
+public class TileEntityCellCleaner extends TileEntity implements IInventory, ITankContainer, IEnergySink
 {
+	public static void dbg(Object msg)
+	{
+		System.out.println(FMLCommonHandler.instance().getEffectiveSide().toString() + " - " + (msg == null ? "null" : msg.toString()));
+	}
+	
 	public static final int slotFilled = 0;
 	public static final int slotEmpty = 1;
 	public static final int slotBattery = 2;
 	
 	public static final int defaultTankIndex = 0;
+	
+
+	boolean isEnergyTileLoaded = false;
 	
 	private int facing;
 	private ItemStack[] content;
@@ -168,107 +182,76 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 	@Override
 	public void updateEntity()
 	{
-//		if(working)
-//		{
-//			workProgress ++;
-//		}
+
 		
 		boolean inventoryUpdateRequired = false;
-		
+
+//		dbg("updateEntity 1");
         if (!worldObj.isRemote)
         {
-//        	ItemStack srcItem = getStackInSlot(slotFilled);
+    		if(!isEnergyTileLoaded)
+    		{
+    			dbg("updateEntity 2");
+    			MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
+    			isEnergyTileLoaded = true;
+    		}
+        	
+        	
         	if(!isWorking() && canProcess(content[slotFilled]))
         	{
         		workTotal = 20;
         		workProgress = 0;
-//        		working = true;
-//        		currentItemBurnTime = furnaceBurnTime = getItemBurnTime(this.furnaceItemStacks[1]);
-
-//                if (furnaceBurnTime > 0)
-//                {
-                    inventoryUpdateRequired = true;
-
-//                    if (this.furnaceItemStacks[1] != null)
-//                    {
-//                        --this.furnaceItemStacks[1].stackSize;
-//
-//                        if (this.furnaceItemStacks[1].stackSize == 0)
-//                        {
-//                            this.furnaceItemStacks[1] = this.furnaceItemStacks[1].getItem().getContainerItemStack(furnaceItemStacks[1]);
-//                        }
-//                    }
-//                }
+                inventoryUpdateRequired = true;
         	}
         	
             if (isWorking() && canProcess(content[slotFilled]))
             {
-                ++workProgress;
-
-        		chargeLevel -= 10;
-        		if(chargeLevel < 0)
-        			chargeLevel = maxChargeLevel;
-                
-                if (workProgress == workTotal)
-                {
-                	workProgress = 0;
-                    processItem();
-                    inventoryUpdateRequired = true;
-                }
+            	if(chargeLevel > 10)
+            	{
+	                ++workProgress;
+	
+	        		chargeLevel -= 10;
+	                
+	                if (workProgress == workTotal)
+	                {
+	                	workProgress = 0;
+	                    processItem();
+	                    inventoryUpdateRequired = true;
+	                }
+            	}
             }
             else
             {
             	workProgress = 0;
             }
-        	
-        	
-//			if(workProgress >= workTotal)
-//			{
-//				workEnd();
-//				
-//				ItemStack filledStack = getStackInSlot(slotFilled);
-//
-//			}
+
         }
         
         if(inventoryUpdateRequired)
         {
         	onInventoryChanged();
         }
-//		CellCleaner.updateBlockTileEntity(this.working, this.worldObj, this.xCoord, this.yCoord, this.zCoord);
-		
-//		System.out.println(FMLCommonHandler.instance().getEffectiveSide() + " : updateEntity");
 	}
 	
-//	public void workEnd()
+//	public void onLoaded()
 //	{
-//		workProgress = 0;
-//		workTotal = 0;
-//		working = false;
-//
-//	}
-	
-//	public void workBegin(int ticksToWork)
-//	{
-//		workProgress = 0;
-//		workTotal = ticksToWork;
-//		working = true;
-//		
-//		
-//	}
-	
-//	@Override
-//	public void onInventoryChanged()
-//	{
-//		ItemStack filledStack = getStackInSlot(slotFilled);
-//		if(filledStack != null && !working)
-//		{
-//			workBegin(100);
+//		super.onLoaded();
+//		if (IC2.platform.isSimulating()) {
+//			MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
+//			
+//			this.addedToEnergyNet = true;
 //		}
-//		if(filledStack == null && working)
-//		{
-//			workEnd();
+//	}
+//	
+//	public void onUnloaded()
+//	{
+//		if ((IC2.platform.isSimulating()) && (this.addedToEnergyNet)) {
+//			MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
+//			
+//			this.addedToEnergyNet = false;
 //		}
+//		
+//		super.onUnloaded();
 //	}
 	
 	////////////////////////////////////////////////////////////////////////////
@@ -280,13 +263,11 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 	{
 		super.readFromNBT(root);
 		
-//		System.err.println(FMLCommonHandler.instance().getEffectiveSide() + " : readFromNBT");
-		
 		this.facing = root.getInteger("facing");
-//		this.working = root.getBoolean("working");
 		this.workProgress = root.getInteger("workProgress");
 		this.workTotal = root.getInteger("workTotal");
 		this.tank.readFromNBT(root.getCompoundTag("tank"));
+		this.visibleLiquidLevel = root.getInteger("visibleLiquidLevel");
 		this.chargeLevel = root.getInteger("chargeLevel");
 		
 		NBTTagList items = root.getTagList("items");
@@ -300,8 +281,6 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 				setInventorySlotContents(slot, ItemStack.loadItemStackFromNBT(item));
 			}
 		}
-		
-
 	}
 	
 	
@@ -310,13 +289,12 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 	{
 		super.writeToNBT(root);
 		root.setInteger("facing", this.facing);
-		
-//		root.setBoolean("working", working);
 		root.setInteger("workProgress", workProgress);
 		root.setInteger("workTotal", workTotal);
 		NBTTagCompound tankTag = new NBTTagCompound();
 		tank.writeToNBT(tankTag);
 		root.setCompoundTag("tank", tankTag);
+		root.setInteger("visibleLiquidLevel", visibleLiquidLevel);
 		root.setInteger("chargeLevel", chargeLevel);
 		
 		NBTTagList items = new NBTTagList();
@@ -346,35 +324,33 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 	public void onDataPacket(INetworkManager net, Packet132TileEntityData pkt) {
 		super.onDataPacket(net, pkt);
 		readFromNBT(pkt.customParam1);
-//		System.out.println(FMLCommonHandler.instance().getEffectiveSide() + " : onDataPacket");
 	}
 	
-
-	public void updateClientEntity() {
-		if(FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
-		{
-//			System.out.println(FMLCommonHandler.instance().getEffectiveSide() + " : updateClientEntity");
-			
-			Packet250CustomPayload p = new Packet250CustomPayload();
-			ByteArrayOutputStream bos = new ByteArrayOutputStream(8);
-	        DataOutputStream outputStream = new DataOutputStream(bos);
-	        try {
-	                outputStream.writeByte(PacketHandler.requestUpdateTileEntity);
-	                outputStream.writeInt(xCoord);
-	                outputStream.writeInt(yCoord);
-	                outputStream.writeInt(zCoord);
-	        } catch (Exception ex) {
-	                ex.printStackTrace();
-	        }
-	       
-	        Packet250CustomPayload packet = new Packet250CustomPayload();
-	        packet.channel = ModInfo.channel;
-	        packet.data = bos.toByteArray();
-	        packet.length = bos.size();
-	        
-	        PacketDispatcher.sendPacketToServer(packet);
-		}
-	}
+//
+//	public void updateClientEntity() {
+//		if(FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
+//		{
+//			
+//			Packet250CustomPayload p = new Packet250CustomPayload();
+//			ByteArrayOutputStream bos = new ByteArrayOutputStream(8);
+//	        DataOutputStream outputStream = new DataOutputStream(bos);
+//	        try {
+//	                outputStream.writeByte(PacketHandler.requestUpdateTileEntity);
+//	                outputStream.writeInt(xCoord);
+//	                outputStream.writeInt(yCoord);
+//	                outputStream.writeInt(zCoord);
+//	        } catch (Exception ex) {
+//	                ex.printStackTrace();
+//	        }
+//	       
+//	        Packet250CustomPayload packet = new Packet250CustomPayload();
+//	        packet.channel = ModInfo.channel;
+//	        packet.data = bos.toByteArray();
+//	        packet.length = bos.size();
+//	        
+//	        PacketDispatcher.sendPacketToServer(packet);
+//		}
+//	}
 	
 	////////////////////////////////////////////////////////////////////////////
 	//  I I N V E N T O R Y   I M P L E M E N T A T I O N  /////////////////////
@@ -513,7 +489,9 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 	public LiquidStack drain(int tankIndex, int maxDrain, boolean doDrain) {
 		if (tankIndex != defaultTankIndex)
 			return null;
-		return tank.drain(maxDrain, doDrain);
+		LiquidStack liquid = tank.drain(maxDrain, doDrain);
+		visibleLiquidLevel = getLiquidLevel();
+		return liquid;
 	}
 
 	@Override
@@ -526,4 +504,55 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 		return tank;
 	}
 
+	@Override
+	public boolean acceptsEnergyFrom(TileEntity emitter, Direction direction) {
+		return true;
+	}
+
+	@Override
+	public boolean isAddedToEnergyNet() {
+		dbg("isAddedToEnergyNet");
+		return isEnergyTileLoaded;
+	}
+
+	@Override
+	public int demandsEnergy() {
+		return maxChargeLevel - chargeLevel;
+	}
+
+	@Override
+	public int injectEnergy(Direction directionFrom, int amount) {
+		int demands = this.demandsEnergy();
+		if(amount > demands)
+		{
+			chargeLevel = maxChargeLevel;
+			return amount - demands;
+		}
+		
+		chargeLevel += amount;
+		return 0;
+	}
+
+	@Override
+	public int getMaxSafeInput() {
+		return 32;
+	}
+
+//	@Override
+	public void invalidate()
+	{
+		dbg("invalidate 1");
+		if(!this.getWorldObj().isRemote && isEnergyTileLoaded)
+		{
+			dbg("invalidate 2");
+			MinecraftForge.EVENT_BUS.post(new EnergyTileUnloadEvent(this));
+			isEnergyTileLoaded = false;
+		}
+		super.invalidate();
+	}
+	
+	public void onChunkUnload()
+	{
+		
+	}
 }

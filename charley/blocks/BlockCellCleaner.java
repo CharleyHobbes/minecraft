@@ -103,14 +103,14 @@ public class BlockCellCleaner extends BlockContainer
 			FMLNetworkHandler.openGui(entityPlayer, Charley.instance, 0, world, x, y, z);
 		}
 		
-		if(FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
-		{
-			TileEntity te = world.getBlockTileEntity(x, y, z);
-			if(te != null && te instanceof TileEntityCellCleaner)
-			{
-				((TileEntityCellCleaner)te).updateClientEntity();
-			}
-		}
+//		if(FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
+//		{
+//			TileEntity te = world.getBlockTileEntity(x, y, z);
+//			if(te != null && te instanceof TileEntityCellCleaner)
+//			{
+//				((TileEntityCellCleaner)te).updateClientEntity();
+//			}
+//		}
 		
 		return true;
 	}
