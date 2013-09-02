@@ -111,12 +111,24 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 	
 	public boolean canProcess(ItemStack item)
 	{
+//		dbg("canProcess");
 		if(item == null){
 			return false;
 		}
 		
 		CellCleanerResult res = Recipes.cellCleaner.getOutputFor(item);
+
+		if(res.emptyContainer == null)
+			return false;
 		
+		if(res.liquid == null)
+			return false;
+		if(res.liquid.canonical() == null)
+			return false;
+		if(res.liquid.canonical().getRenderingIcon() == null)
+			return false;
+		
+//		dbg(res);
 		if(res == null)
 			return false;
 
@@ -146,6 +158,12 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 		if(content[slotFilled] != null && canProcess(content[slotFilled]))
 		{
 			LiquidStack liquid = Recipes.cellCleaner.getOutputFor(content[slotFilled]).liquid;
+			dbg(liquid.canonical());
+			if(liquid.canonical() != null)
+				dbg(liquid.canonical().getRenderingIcon());
+			else
+				dbg("NULL");
+			
 			ItemStack empty = Recipes.cellCleaner.getOutputFor(content[slotFilled]).emptyContainer;
 			
 			tank.fill(liquid, true);
@@ -191,7 +209,7 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
         {
     		if(!isEnergyTileLoaded)
     		{
-    			dbg("updateEntity 2");
+//    			dbg("updateEntity 2");
     			MinecraftForge.EVENT_BUS.post(new EnergyTileLoadEvent(this));
     			isEnergyTileLoaded = true;
     		}
@@ -199,22 +217,23 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
         	
         	if(!isWorking() && canProcess(content[slotFilled]))
         	{
-        		workTotal = 20;
+        		workTotal = 400;
         		workProgress = 0;
                 inventoryUpdateRequired = true;
         	}
         	
             if (isWorking() && canProcess(content[slotFilled]))
             {
-            	if(chargeLevel > 10)
+            	if(chargeLevel > 2)
             	{
 	                ++workProgress;
 	
-	        		chargeLevel -= 10;
+	        		chargeLevel -= 2;
 	                
 	                if (workProgress == workTotal)
 	                {
 	                	workProgress = 0;
+	                	workTotal = 0;
 	                    processItem();
 	                    inventoryUpdateRequired = true;
 	                }
@@ -521,12 +540,16 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 	}
 
 	@Override
-	public int injectEnergy(Direction directionFrom, int amount) {
-		int demands = this.demandsEnergy();
-		if(amount > demands)
-		{
-			chargeLevel = maxChargeLevel;
-			return amount - demands;
+	public int injectEnergy(Direction directionFrom, int amount) 
+	{
+//		if (amount > 32) {
+//			IC2.explodeMachineAt(this.worldObj, this.xCoord, this.yCoord, this.zCoord);
+//			getWorldObj().setBlock(par1, par2, par3, par4, a, c);
+//			return 0;
+//		}
+
+		if (chargeLevel >= maxChargeLevel) {
+			return amount;
 		}
 		
 		chargeLevel += amount;

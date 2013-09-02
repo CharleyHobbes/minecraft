@@ -103,25 +103,7 @@ public class Recipes {
 		
 //		ItemStack lc = LiquidContainerRegistry.
 		
-		LiquidContainerData[] containers = LiquidContainerRegistry.getRegisteredLiquidContainerData();
-		for(LiquidContainerData container : containers)
-		{
-//			System.out.println("================================================================================");
-//			printLiquidContainerData(container);
-			ItemStack filled = container.filled.copy();
-			ItemStack empty = container.container.copy();
-			LiquidStack liquid = container.stillLiquid.copy();
-			
-			if(empty.getItem() instanceof ItemBucket)
-				liquid.amount = 1000;
-			
-			emptyContainerFromFilledContainer.put(filled, empty);
-			liquidFromFilledContainer.put(filled, liquid);
-			filledContainers.add(filled);
 
-			cellCleaner.addRecipe(filled, new CellCleanerResult(empty, liquid));
-			System.out.println("Adding cellCleaner recipe: " + filled.getItem().getItemDisplayName(filled) + " -> " + empty.getItem().getItemDisplayName(empty) + " + " + liquid.asItemStack().getItem().getItemDisplayName(liquid.asItemStack()) + " " + liquid.amount);
-		}
 //		if(containers.length > 0)
 //			System.out.println("================================================================================");
 		

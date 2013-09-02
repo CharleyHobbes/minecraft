@@ -7,12 +7,17 @@ import net.minecraft.inventory.ICrafting;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.liquids.LiquidStack;
+import charley.recipe.Recipes;
 import charley.tileEntities.TileEntityCellCleaner;
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 public class ContainerCellCleaner extends Container {
-
+	public static void dbg(Object msg)
+	{
+		System.out.println(FMLCommonHandler.instance().getEffectiveSide().toString() + " - " + (msg == null ? "null" : msg.toString()));
+	}
 	public enum progressId 
 	{
 		workProgress,
@@ -148,6 +153,7 @@ public class ContainerCellCleaner extends Container {
     {
         ItemStack returnedStack = null;
         Slot slot = (Slot)this.inventorySlots.get(slotID);
+//        dbg(slotID);
         
         if (slot != null && slot.getHasStack())			// There's something in this slot
         {
@@ -165,7 +171,8 @@ public class ContainerCellCleaner extends Container {
 //            }
             if (slotID > 2)
             {
-            	if(tileEntity.canProcess(transferedStack))
+//        		dbg(transferedStack.getDisplayName());
+            	if(Recipes.cellCleaner.getOutputFor(transferedStack) != null)
             	{
 	            	if (!this.mergeItemStack(transferedStack, 0, 1, false))
 	            	{
