@@ -52,11 +52,11 @@ public class Charley
 		
 		
 		block = new BlockCellCleaner(BlockInfo.cellCleaner, config).register();
-
-		
-		ic2.api.recipe.Recipes.advRecipes.addRecipe(new ItemStack(block), new Object[] {
-			"CCC", " M ", "   ", 'C', Items.getItem("waterCell"), 'M', Items.getItem("machine")
-		});
+//		GT_ModHandler.addCraftingRecipe
+		ic2.api.recipe.Recipes.advRecipes.addRecipe(new ItemStack(block), new Object[] { "CCC", "OMO", "OOO", Character.valueOf('C'), "craftingCircuitTier02", Character.valueOf('O'), Items.getItem("cell"), Character.valueOf('M'), "craftingRawMachineTier01" });
+//		ic2.api.recipe.Recipes.advRecipes.addRecipe(new ItemStack(block), new Object[] {
+//			"CCC", " M ", "   ", 'C', Items.getItem("waterCell"), 'M', Items.getItem("machine")
+//		});
 		
 		new GuiHandler();
 		

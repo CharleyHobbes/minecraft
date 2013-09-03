@@ -118,6 +118,11 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 		
 		CellCleanerResult res = Recipes.cellCleaner.getOutputFor(item);
 
+		
+//		dbg(res);
+		if(res == null)
+			return false;
+
 		if(res.emptyContainer == null)
 			return false;
 		
@@ -128,10 +133,7 @@ public class TileEntityCellCleaner extends TileEntity implements IInventory, ITa
 		if(res.liquid.canonical().getRenderingIcon() == null)
 			return false;
 		
-//		dbg(res);
-		if(res == null)
-			return false;
-
+		
 		if(tank.getLiquid() != null)
 		{
 			if(!res.liquid.isLiquidEqual(tank.getLiquid()))
