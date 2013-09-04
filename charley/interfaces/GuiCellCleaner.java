@@ -6,19 +6,26 @@ import java.awt.Rectangle;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraftforge.liquids.LiquidDictionary;
+import net.minecraftforge.liquids.LiquidStack;
 
 import org.lwjgl.opengl.GL11;
 
 import charley.TextureCfg;
 import charley.configuration.BlockInfo;
+import charley.recipe.Recipes;
 import charley.tileEntities.TileEntityCellCleaner;
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 
 @SideOnly(Side.CLIENT)
 public class GuiCellCleaner extends GuiContainer {
-
+	public static void dbg(Object msg)
+	{
+		System.out.println(FMLCommonHandler.instance().getEffectiveSide().toString() + " - " + (msg == null ? "null" : msg.toString()));
+	}
 	private TileEntityCellCleaner tileEntity;
 	
 	public GuiCellCleaner(InventoryPlayer invPlayer, TileEntityCellCleaner tileEntity) {
@@ -34,18 +41,20 @@ public class GuiCellCleaner extends GuiContainer {
 	
 	private static final Rectangle guiSize = new Rectangle(176, 166);
 	
-	private static final Point liquidTextureSrc = new Point(176, 14);
-	private static final Point progressTextureSrc = new Point(206, 0);
+	private static final Point pistonTextureSrc = new Point(176, 31);
+	private static final Point progressTextureSrc = new Point(176, 16);
 	private static final Point chargeTextureSrc = new Point(176, 0);
 	
-	private static final Point liquidTextureDst = new Point(120, 20);
+	private static final Point pistonTextureDst = new Point(120, 61);
 	private static final Point progressTextureDst = new Point(45, 34);
-	private static final Point chargeTextureDst = new Point(24, 37);
+	private static final Point chargeTextureDst = new Point(20, 36);
 	
-	private static final Rectangle liquidTextureRect = new Rectangle(30, 46);
+	private static final Point chamberRefPoint = new Point(120, 66);
+	
+	private static final Rectangle pistonTextureRect = new Rectangle(30, 5);
 	private static final Rectangle progressTextureRect = new Rectangle(22, 15);
-	private static final Rectangle chargeTextureRect = new Rectangle(7, 13);
-	
+	private static final Rectangle chargeTextureRect = new Rectangle(16, 16);
+	private static final Rectangle chamberRect = new Rectangle(30, 46);
 
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float f, int x, int y) {
@@ -60,26 +69,41 @@ public class GuiCellCleaner extends GuiContainer {
 		
 		
 		// Drawing liquid in tank
-		float liquidLevel = (float)tileEntity.visibleLiquidLevel / (float)tileEntity.tank.getCapacity();
 		
-		int liquidRenderHeight = (int) (liquidLevel * (liquidTextureRect.height - 5)) + 5;
-		if(liquidRenderHeight > liquidTextureRect.height)
-			liquidRenderHeight = liquidTextureRect.height;
-		if(liquidRenderHeight < 0)
-			liquidRenderHeight = 0;
+		int pistonOffset = (int) tileEntity.getClientLiquidLevelScaled(chamberRect.height - pistonTextureRect.height);
+		dbg(pistonOffset);
+		if(pistonOffset + pistonTextureRect.height > chamberRect.height)
+			pistonOffset = chamberRect.height - pistonTextureRect.height;
+		if(pistonOffset < 0)
+			pistonOffset = 0;
+		
+		int liquidRenderHeight = pistonOffset + (tileEntity.getClientLiquidAmount() > 0 ? 1 : 0);
 
 		Point liquidDestination = new Point();
+		Point pistonDestination = new Point();
 		
-		liquidDestination.x = guiLeft + liquidTextureDst.x;
-		liquidDestination.y = guiTop + liquidTextureDst.y + liquidTextureRect.height - liquidRenderHeight;
 		
-		drawTexturedModalRect(liquidDestination.x, liquidDestination.y, liquidTextureSrc.x, liquidTextureSrc.y, liquidTextureRect.width, liquidRenderHeight);
+		liquidDestination.x = guiLeft + chamberRefPoint.x;
+		liquidDestination.y = guiTop + chamberRefPoint.y - liquidRenderHeight;
 		
+		pistonDestination.x = guiLeft + chamberRefPoint.x;
+		pistonDestination.y = guiTop + chamberRefPoint.y - pistonOffset - pistonTextureRect.height;
+
+		
+		if(tileEntity.getClientLiquidLevel() > 0 && tileEntity.getClientLiquidId() != null)
+		{
+			Integer id = tileEntity.getClientLiquidId();
+			Minecraft.getMinecraft().renderEngine.bindTexture(Recipes.cellCleaner.getTextureSheet(id));
+			drawTexturedModelRectFromIcon(liquidDestination.x, liquidDestination.y, Recipes.cellCleaner.getRenderingIcon(id), chamberRect.width, liquidRenderHeight);
+
+			Minecraft.getMinecraft().renderEngine.bindTexture(textrueLocation);
+		}
+		
+		drawTexturedModalRect(pistonDestination.x, pistonDestination.y, pistonTextureSrc.x, pistonTextureSrc.y, pistonTextureRect.width, pistonTextureRect.height);
 		
 		// Drawing job progress bar
-		float progress = (float)tileEntity.workProgress / (float)tileEntity.workTotal;
 		
-		int progressRenderWidth = (int) (progress * progressTextureRect.width);
+		int progressRenderWidth = (int) tileEntity.getWorkProgressScaled(progressTextureRect.width);
 		if(progressRenderWidth > progressTextureRect.width)
 			progressRenderWidth = progressTextureRect.width;
 		if(progressRenderWidth < 0)
@@ -94,9 +118,8 @@ public class GuiCellCleaner extends GuiContainer {
 		
 		
 		// Drawing charge level
-		float charge = (float)tileEntity.chargeLevel / (float)tileEntity.maxChargeLevel;
 		
-		int chargeRenderHeigh = (int) (charge * chargeTextureRect.height);
+		int chargeRenderHeigh = (int) tileEntity.getChargeLevelScaled(chargeTextureRect.height);
 		if(chargeRenderHeigh > chargeTextureRect.height)
 			chargeRenderHeigh = chargeTextureRect.height;
 		if(chargeRenderHeigh < 0)
@@ -108,6 +131,7 @@ public class GuiCellCleaner extends GuiContainer {
 		chargeDestination.y = guiTop + chargeTextureDst.y + chargeTextureRect.height - chargeRenderHeigh;
 		
 		drawTexturedModalRect(chargeDestination.x, chargeDestination.y, chargeTextureSrc.x, chargeTextureSrc.y + chargeTextureRect.height - chargeRenderHeigh, chargeTextureRect.width, chargeRenderHeigh);
+		
 	}
 
 }

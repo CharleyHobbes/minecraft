@@ -14,6 +14,7 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.common.Configuration;
+import net.minecraftforge.common.ForgeDirection;
 import charley.Charley;
 import charley.configuration.BlockInfo;
 import charley.configuration.ModInfo;
@@ -192,7 +193,7 @@ public class BlockCellCleaner extends BlockContainer
     	TileEntityCellCleaner te = (TileEntityCellCleaner)iBlockAccess.getBlockTileEntity(x, y, z);
     	if(te != null && te instanceof TileEntityCellCleaner)
     	{
-    		return te.getFacing();
+    		return te.getDirection().ordinal();
     	}
     	System.err.println("Failed to get block facing @ CellCleaner.getFacing");
     	return 3; // Returning default facing to South
@@ -203,7 +204,7 @@ public class BlockCellCleaner extends BlockContainer
     	TileEntityCellCleaner te = (TileEntityCellCleaner)iBlockAccess.getBlockTileEntity(x, y, z);
     	if(te != null && te instanceof TileEntityCellCleaner)
     	{
-    		te.setFacing(facing);
+    		te.setDirection(ForgeDirection.getOrientation(facing));
     		return;
     	}
     	System.err.println("Failed to set block facing @ CellCleaner.setFacing");

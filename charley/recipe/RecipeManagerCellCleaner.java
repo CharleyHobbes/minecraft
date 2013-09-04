@@ -1,17 +1,15 @@
 package charley.recipe;
 
-import ic2.api.recipe.IMachineRecipeManager;
-
 import java.util.HashMap;
 import java.util.Map;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-
 import net.minecraft.item.ItemBucket;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.Icon;
 import net.minecraftforge.liquids.LiquidContainerData;
 import net.minecraftforge.liquids.LiquidContainerRegistry;
 import net.minecraftforge.liquids.LiquidStack;
+import cpw.mods.fml.common.FMLCommonHandler;
 
 public class RecipeManagerCellCleaner {
 
@@ -20,6 +18,9 @@ public class RecipeManagerCellCleaner {
 		System.out.println(FMLCommonHandler.instance().getEffectiveSide().toString() + " - " + (msg == null ? "null" : msg.toString()));
 	}
 	private final Map<ItemStack, CellCleanerResult> recipes = new HashMap();
+	private final Map<Integer, String> liquidTextureSheetFromId = new HashMap();
+	private final Map<Integer, Icon> liquidRenderingIconFromId = new HashMap();
+	
 	private boolean initialized = false;
 
 	private void addRecipe(ItemStack input, CellCleanerResult output) 
@@ -65,6 +66,11 @@ public class RecipeManagerCellCleaner {
 			if(empty.getItem() instanceof ItemBucket)
 				liquid.amount = 1000;
 			
+			if(!liquidTextureSheetFromId.containsKey(liquid.itemID))
+				liquidTextureSheetFromId.put(liquid.itemID, liquid.canonical().getTextureSheet());
+			if(!liquidRenderingIconFromId.containsKey(liquid.itemID))
+				liquidRenderingIconFromId.put(liquid.itemID, liquid.canonical().getRenderingIcon());
+			
 //			emptyContainerFromFilledContainer.put(filled, empty);
 //			liquidFromFilledContainer.put(filled, liquid);
 //			filledContainers.add(filled);
@@ -76,4 +82,18 @@ public class RecipeManagerCellCleaner {
 		initialized = true;
 	}
 
+	public String getTextureSheet(int id)
+	{
+		if(!initialized)
+			initialize();
+		
+		return liquidTextureSheetFromId.get(id);
+	}
+	
+	public Icon getRenderingIcon(int id)
+	{
+		if(!initialized)
+			initialize();
+		return liquidRenderingIconFromId.get(id);
+	}
 }

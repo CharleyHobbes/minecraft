@@ -1,6 +1,7 @@
 package charley.interfaces;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ICrafting;
@@ -20,34 +21,36 @@ public class ContainerCellCleaner extends Container {
 	}
 	public enum progressId 
 	{
-		workProgress,
+		workTicks,
 		workTotal,
-		chargeLevel,
-		liquidLevel;
+		charge,
+		liquidAmount, 
+		liquidId;
 	}
 	
 	TileEntityCellCleaner tileEntity;
-	public static final int slotIdFilled = 0;
-	public static final int slotIdEmpty = 1;
-	public static final int slotIdBattery = 2;
+	public static final Integer slotIdFilled = 0;
+	public static final Integer slotIdEmpty = 1;
+	public static final Integer slotIdBattery = 2;
 	
-	public static final int firstPlayerSlot = 3;
-	public static final int lastPlayerSlot = 38;
+	public static final Integer firstPlayerSlot = 3;
+	public static final Integer lastPlayerSlot = 38;
 	
 	
-	public int lastProgress = 0;
-	public int lastTotal = 0;
-	public int lastLiquidLevel = 0;
-	public int lastChargeLevel = 0;
+	public Integer lastWorkTicks = 0;
+	public Integer lastWorkTotal = 0;
+	public Integer lastLiquidAmount = 0;
+	public Integer lastCharge = 0;
+	public Integer lastLiquidId = 0;
 	
 	public ContainerCellCleaner(InventoryPlayer invPlayer, TileEntityCellCleaner tileEntity)
 	{
 		this.tileEntity = tileEntity;
 
 		
-		addSlotToContainer(new Slot(tileEntity, TileEntityCellCleaner.slotFilled, 21, 17));					// #0 slot
-		addSlotToContainer(new SlotCellCleaner(tileEntity, TileEntityCellCleaner.slotEmpty, 81, 35));		// #1 slot
-		addSlotToContainer(new Slot(tileEntity, TileEntityCellCleaner.slotBattery, 21, 53));				// #2 slot
+		addSlotToContainer(new Slot(tileEntity, TileEntityCellCleaner.SlotId.filled.getValue(), 21, 17));				// #0 slot
+		addSlotToContainer(new SlotCellCleaner(tileEntity, TileEntityCellCleaner.SlotId.empty.getValue(), 81, 35));		// #1 slot
+		addSlotToContainer(new Slot(tileEntity, TileEntityCellCleaner.SlotId.battery.getValue(), 21, 53));				// #2 slot
 		
 		
 		for(int x = 0; x < 9; x ++)
@@ -71,12 +74,13 @@ public class ContainerCellCleaner extends Container {
     public void addCraftingToCrafters(ICrafting par1ICrafting)
     {
         super.addCraftingToCrafters(par1ICrafting);
-        par1ICrafting.sendProgressBarUpdate(this, progressId.workProgress.ordinal(), this.tileEntity.workProgress);
-        par1ICrafting.sendProgressBarUpdate(this, progressId.workTotal.ordinal(), this.tileEntity.workTotal);
-        LiquidStack liquid = this.tileEntity.tank.getLiquid();
-        par1ICrafting.sendProgressBarUpdate(this, progressId.liquidLevel.ordinal(), liquid == null ? 0 : liquid.amount);
-        par1ICrafting.sendProgressBarUpdate(this, progressId.chargeLevel.ordinal(), this.tileEntity.chargeLevel);
+        par1ICrafting.sendProgressBarUpdate(this, progressId.workTicks.ordinal()	, this.tileEntity.getWorkTicks());
+        par1ICrafting.sendProgressBarUpdate(this, progressId.workTotal.ordinal()	, this.tileEntity.getWorkTotal());
+        par1ICrafting.sendProgressBarUpdate(this, progressId.charge.ordinal()		, this.tileEntity.getCharge());
+        par1ICrafting.sendProgressBarUpdate(this, progressId.liquidAmount.ordinal()	, this.tileEntity.getLiquidAmount());
+        par1ICrafting.sendProgressBarUpdate(this, progressId.liquidId.ordinal()		, this.tileEntity.getLiquidId());
     }
+
 	
     public void detectAndSendChanges()
     {
@@ -87,53 +91,60 @@ public class ContainerCellCleaner extends Container {
             ICrafting icrafting = (ICrafting)this.crafters.get(i);
             
 
-            if (this.lastProgress != this.tileEntity.workProgress)
+            if (this.lastWorkTicks != this.tileEntity.getWorkTicks())
             {
-                icrafting.sendProgressBarUpdate(this, progressId.workProgress.ordinal(), this.tileEntity.workProgress);
+                icrafting.sendProgressBarUpdate(this, progressId.workTicks.ordinal(), this.tileEntity.getWorkTicks());
             }
 
-            if (this.lastTotal != this.tileEntity.workTotal)
+            if (this.lastWorkTotal != this.tileEntity.getWorkTotal())
             {
-                icrafting.sendProgressBarUpdate(this, progressId.workTotal.ordinal(), this.tileEntity.workTotal);
+                icrafting.sendProgressBarUpdate(this, progressId.workTotal.ordinal(), this.tileEntity.getWorkTotal());
+            }
+            if(this.lastCharge != this.tileEntity.getCharge())
+            {
+            	icrafting.sendProgressBarUpdate(this, progressId.charge.ordinal(), this.tileEntity.getCharge());
             }
 
-            if(this.lastLiquidLevel != this.tileEntity.visibleLiquidLevel)
+            if(this.lastLiquidAmount != this.tileEntity.getLiquidAmount())
             {
-            	icrafting.sendProgressBarUpdate(this, progressId.liquidLevel.ordinal(), tileEntity.visibleLiquidLevel);
+            	icrafting.sendProgressBarUpdate(this, progressId.liquidAmount.ordinal(), tileEntity.getLiquidAmount());
             }
-            
-            
-            if(this.lastChargeLevel != this.tileEntity.chargeLevel)
+            if(this.lastLiquidId != this.tileEntity.getLiquidId())
             {
-            	icrafting.sendProgressBarUpdate(this, progressId.chargeLevel.ordinal(), this.tileEntity.chargeLevel);
+            	icrafting.sendProgressBarUpdate(this, progressId.liquidId.ordinal(), tileEntity.getLiquidId());
             }
         }
 
-        this.lastProgress = this.tileEntity.workProgress;
-        this.lastTotal = this.tileEntity.workTotal;
-        this.lastLiquidLevel = this.tileEntity.visibleLiquidLevel;
-        this.lastChargeLevel = this.tileEntity.chargeLevel;
+        this.lastWorkTicks = this.tileEntity.getWorkTicks();
+        this.lastWorkTotal = this.tileEntity.getWorkTotal();
+        this.lastLiquidAmount = this.tileEntity.getLiquidAmount();
+        this.lastLiquidId  = this.tileEntity.getLiquidId();
+        this.lastCharge = this.tileEntity.getCharge();
     }
     
     
     @SideOnly(Side.CLIENT)
     public void updateProgressBar(int id, int value)
     {
-        if (id == progressId.workProgress.ordinal())
+        if (id == progressId.workTicks.ordinal())
         {
-            this.tileEntity.workProgress = value;
+            this.tileEntity.setWorkTicks(value);
         }
         else if (id == progressId.workTotal.ordinal())
         {
-            this.tileEntity.workTotal = value;
+            this.tileEntity.setWorkTotal(value);
         }
-        else if (id == progressId.chargeLevel.ordinal())
+        else if (id == progressId.charge.ordinal())
         {
-        	this.tileEntity.chargeLevel = value;
+        	this.tileEntity.setCharge(value);
         }
-        else if (id == progressId.liquidLevel.ordinal())
+        else if (id == progressId.liquidAmount.ordinal())
         {
-        	this.tileEntity.visibleLiquidLevel = value;
+        	this.tileEntity.setClientLiquidAmount(value);
+        }
+        else if (id == progressId.liquidId.ordinal())
+        {
+        	this.tileEntity.setClientLiquidId(value);
         }
         else
         {
